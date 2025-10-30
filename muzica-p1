@@ -1,0 +1,77 @@
+#define do  131
+#define do_diez 139
+#define re  147
+#define re_diez 156
+#define mi  165
+#define fa  175
+#define fa_diez 185
+#define sol  196
+#define sol_diez 208
+#define la  220
+#define la_diez 233
+#define si  247
+
+#define Do  262 
+#define Do_diez 277
+#define Re  294
+#define Re_diez 311
+#define Mi  330
+#define Fa  349
+#define Fa_diez 370
+#define Sol  392 
+#define Sol_diez 415
+#define La  440
+#define La_diez 466
+#define Si  494
+
+#define DO  523
+#define DO_diez 554
+#define RE  587
+#define RE_diez 622
+#define MI  659
+#define FA  698
+#define FA_diez 740
+#define SOL  784
+#define SOL_diez 831
+#define LA  880
+#define LA_diez 932
+#define SI  988
+
+int note[] = {
+  Sol,8,  La,8,  Si,8,  DO,8,
+  DO,6,   DO,2,  RE,8,  RE,8,
+  MI,8,   RE,8,  DO,8,  Si,8,
+  La,12,  Sol,4,
+
+  Sol,8,  La,8,  Si,8,  DO,8,
+  DO,6,   DO,2,  RE,8,  RE,8,
+  MI,8,   RE,8,  DO,8,  Si,8,
+  La,12,  Sol,4,
+
+  La,8,   La,8,  Si,8,  DO,8,
+  RE,8,   DO,8,  Si,8,  La,8,
+  Sol,12, Fa,4,
+  Fa,8,   Fa,8,  Sol,8,  La,8,
+  Si,8,   La,8,  Sol,8,  Fa,8,
+  Mi,12,  Re,4,
+
+  Sol,8,  La,8,  Si,8,  DO,8,
+  DO,6,   DO,2,  RE,8,  RE,8,
+  MI,8,   RE,8,  DO,8,  Si,8,
+  La,12,  Sol,4
+};
+
+void setup() {
+  int octava = 1; 
+  int totalNote = sizeof(note) / sizeof(note[0]) / 2;
+
+  for (int nota_curenta = 0; nota_curenta < totalNote; nota_curenta++) 
+  {
+    tone(3, note[nota_curenta * 2] * octava, 100 * note[nota_curenta * 2 + 1]); 
+    delay(100 * note[nota_curenta * 2 + 1] + 100);
+    noTone(3);
+  }  
+}
+
+void loop() {
+}
