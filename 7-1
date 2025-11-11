@@ -1,0 +1,55 @@
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+
+byte runner[8] = {
+  0b00100,
+  0b00100,
+  0b00100,
+  0b00100,
+  0b01010,
+  0b01010,
+  0b00000,
+  0b00000
+};
+
+byte runner2[8] = {
+  0b00100,
+  0b00100,
+  0b00100,
+  0b00100,
+  0b01110,
+  0b00000,
+  0b01110,
+  0b00000
+};
+
+int pos = 0;          
+bool toggleFrame = 0; 
+
+void setup() {
+  lcd.begin(16, 2);
+  lcd.createChar(0, runner);
+  lcd.createChar(1, runner2);
+}
+
+void loop() {
+  static int lastPos = 0;
+
+  lcd.setCursor(lastPos, 0);
+  lcd.print(" ");
+
+  if (pos > 15) {
+    pos = 0;
+  }
+
+  byte frameToShow = toggleFrame ? 0 : 1;
+
+  lcd.setCursor(pos, 0);
+  lcd.write(frameToShow);
+
+  lastPos = pos;
+  pos++;
+  toggleFrame = !toggleFrame;
+
+  delay(500);
+}
