@@ -1,0 +1,24 @@
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+
+String msg = " bine ai venit ";
+const int LCD_COLS = 16;
+
+void setup() {
+  lcd.begin(16, 2);
+}
+
+void loop() {
+  for (int offset = 0; offset < msg.length(); offset++) {
+    String window = "";
+    for (int i = 0; i < LCD_COLS; i++) {
+      int idx = (offset + i) % msg.length();
+      window += msg[idx];
+    }
+
+    lcd.setCursor(0, 0);
+    lcd.print(window);
+
+    delay(300);  
+  }
+}
