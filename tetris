@@ -1,0 +1,376 @@
+#include <avr/pgmspace.h>
+
+#define DIN_PIN 11
+#define CLK_PIN 13
+#define CS_PIN  10
+
+#define BTN_ROTATE 41   
+#define BTN_LEFT   43   
+#define BTN_RIGHT  45   
+#define BTN_DOWN   47   
+#define BUZZER     49
+
+#define REG_NOOP         0x00
+#define REG_DIGIT0       0x01
+#define REG_DECODE_MODE  0x09
+#define REG_INTENSITY    0x0A
+#define REG_SCAN_LIMIT   0x0B
+#define REG_SHUTDOWN     0x0C
+#define REG_DISPLAY_TEST 0x0F
+
+const byte DISP_W = 8;   
+const byte DISP_H = 32;  
+
+byte frame[DISP_H][DISP_W];
+
+byte devBuffer[8][8];
+
+
+void maxTransfer(byte dev, byte addr, byte data) {
+  digitalWrite(CS_PIN, LOW);
+  for (int d = 7; d >= 0; d--) {
+    if (d == dev) {
+      shiftOut(DIN_PIN, CLK_PIN, MSBFIRST, addr);
+      shiftOut(DIN_PIN, CLK_PIN, MSBFIRST, data);
+    } else {
+      shiftOut(DIN_PIN, CLK_PIN, MSBFIRST, REG_NOOP);
+      shiftOut(DIN_PIN, CLK_PIN, MSBFIRST, 0);
+    }
+  }
+  digitalWrite(CS_PIN, HIGH);
+}
+
+void maxAll(byte addr, byte data) {
+  digitalWrite(CS_PIN, LOW);
+  for (byte dev = 0; dev < 8; dev++) {
+    shiftOut(DIN_PIN, CLK_PIN, MSBFIRST, addr);
+    shiftOut(DIN_PIN, CLK_PIN, MSBFIRST, data);
+  }
+  digitalWrite(CS_PIN, HIGH);
+}
+
+void clearFrame() {
+  for (byte y = 0; y < DISP_H; y++)
+    for (byte x = 0; x < DISP_W; x++)
+      frame[y][x] = 0;
+}
+
+void clearDevBuffer() {
+  for (byte d = 0; d < 8; d++)
+    for (byte r = 0; r < 8; r++)
+      devBuffer[d][r] = 0;
+}
+
+void setPixel(byte x, byte y, bool on) {
+  if (x >= DISP_W || y >= DISP_H) return;
+  frame[y][x] = on ? 1 : 0;
+}
+
+void testDisplay() {
+  clearFrame();
+  
+  setPixel(0, 0, true);
+  flushDisplay();
+  delay(1000);
+  
+  clearFrame();
+  for (byte x = 0; x < DISP_W; x++) {
+    setPixel(x, 0, true);
+  }
+  flushDisplay();
+  delay(1000);
+  
+  clearFrame();
+  for (byte y = 0; y < DISP_H; y++) {
+    setPixel(0, y, true);
+  }
+  flushDisplay();
+  delay(1000);
+  
+  clearFrame();
+}
+
+void flushDisplay() {
+  clearDevBuffer();
+
+  for (byte y = 0; y < DISP_H; y++) {
+    for (byte x = 0; x < DISP_W; x++) {
+      if (!frame[y][x]) continue;
+
+      byte dev, row, col;
+      
+      dev = y / 8;
+      
+      if (dev < 4) {
+       
+        row = y % 8;
+        col = 7 - x;  
+      } else {
+        row = 7 - (y % 8);  
+        col = x;
+      }
+      
+      devBuffer[dev][row] |= (1 << col);
+    }
+  }
+
+  for (byte dev = 0; dev < 8; dev++) {
+    for (byte r = 0; r < 8; r++) {
+      maxTransfer(dev, REG_DIGIT0 + r, devBuffer[dev][r]);
+    }
+  }
+}
+
+
+#define BOARD_W 8  
+#define BOARD_H 32
+
+byte board[BOARD_H][BOARD_W];
+
+struct Piece {
+  int8_t type;
+  int8_t rot;
+  int8_t x, y;
+} cur;
+
+bool gameOver = false;
+
+const PROGMEM byte PIECES[7][4][4][4] = {
+  {
+    {{0,0,0,0},{1,1,1,1},{0,0,0,0},{0,0,0,0}},
+    {{0,0,1,0},{0,0,1,0},{0,0,1,0},{0,0,1,0}},
+    {{0,0,0,0},{1,1,1,1},{0,0,0,0},{0,0,0,0}},
+    {{0,0,1,0},{0,0,1,0},{0,0,1,0},{0,0,1,0}}
+  },
+  {
+    {{0,1,1,0},{0,1,1,0},{0,0,0,0},{0,0,0,0}},
+    {{0,1,1,0},{0,1,1,0},{0,0,0,0},{0,0,0,0}},
+    {{0,1,1,0},{0,1,1,0},{0,0,0,0},{0,0,0,0}},
+    {{0,1,1,0},{0,1,1,0},{0,0,0,0},{0,0,0,0}}
+  },
+  {
+    {{0,1,0,0},{1,1,1,0},{0,0,0,0},{0,0,0,0}},
+    {{0,1,0,0},{0,1,1,0},{0,1,0,0},{0,0,0,0}},
+    {{0,0,0,0},{1,1,1,0},{0,1,0,0},{0,0,0,0}},
+    {{0,1,0,0},{1,1,0,0},{0,1,0,0},{0,0,0,0}}
+  },
+  {
+    {{1,0,0,0},{1,1,1,0},{0,0,0,0},{0,0,0,0}},
+    {{0,1,1,0},{0,1,0,0},{0,1,0,0},{0,0,0,0}},
+    {{0,0,0,0},{1,1,1,0},{0,0,1,0},{0,0,0,0}},
+    {{0,1,0,0},{0,1,0,0},{1,1,0,0},{0,0,0,0}}
+  },
+  {
+    {{0,0,1,0},{1,1,1,0},{0,0,0,0},{0,0,0,0}},
+    {{0,1,0,0},{0,1,0,0},{0,1,1,0},{0,0,0,0}},
+    {{0,0,0,0},{1,1,1,0},{1,0,0,0},{0,0,0,0}},
+    {{1,1,0,0},{0,1,0,0},{0,1,0,0},{0,0,0,0}}
+  },
+  {
+    {{0,1,1,0},{1,1,0,0},{0,0,0,0},{0,0,0,0}},
+    {{0,1,0,0},{0,1,1,0},{0,0,1,0},{0,0,0,0}},
+    {{0,0,0,0},{0,1,1,0},{1,1,0,0},{0,0,0,0}},
+    {{1,0,0,0},{1,1,0,0},{0,1,0,0},{0,0,0,0}}
+  },
+  {
+    {{1,1,0,0},{0,1,1,0},{0,0,0,0},{0,0,0,0}},
+    {{0,0,1,0},{0,1,1,0},{0,1,0,0},{0,0,0,0}},
+    {{0,0,0,0},{1,1,0,0},{0,1,1,0},{0,0,0,0}},
+    {{0,1,0,0},{1,1,0,0},{1,0,0,0},{0,0,0,0}}
+  }
+};
+
+bool collides(int8_t nx, int8_t ny, int8_t rot) {
+  for (byte i = 0; i < 4; i++) {
+    for (byte j = 0; j < 4; j++) {
+      byte cell = pgm_read_byte(&PIECES[cur.type][rot][i][j]);
+      if (!cell) continue;
+
+      int bx = nx + j;
+      int by = ny + i;
+
+      if (bx < 0 || bx >= BOARD_W) return true;
+      if (by >= BOARD_H)          return true;
+      if (by >= 0 && board[by][bx]) return true;
+    }
+  }
+  return false;
+}
+
+void lockPiece() {
+  for (byte i = 0; i < 4; i++)
+    for (byte j = 0; j < 4; j++) {
+      byte cell = pgm_read_byte(&PIECES[cur.type][cur.rot][i][j]);
+      if (!cell) continue;
+
+      int bx = cur.x + j;
+      int by = cur.y + i;
+      if (bx >= 0 && bx < BOARD_W && by >= 0 && by < BOARD_H)
+        board[by][bx] = 1;
+    }
+}
+
+void clearLines() {
+  for (int y = BOARD_H - 1; y >= 0; y--) {
+    bool full = true;
+    for (int x = 0; x < BOARD_W; x++)
+      if (!board[y][x]) full = false;
+
+    if (full) {
+      tone(BUZZER, 500, 80); delay(100);
+      tone(BUZZER, 700, 80); delay(100);
+      tone(BUZZER, 900, 80);
+
+      for (int yy = y; yy > 0; yy--)
+        for (int x = 0; x < BOARD_W; x++)
+          board[yy][x] = board[yy - 1][x];
+
+      for (int x = 0; x < BOARD_W; x++)
+        board[0][x] = 0;
+
+      y++;
+    }
+  }
+}
+
+void spawnPiece() {
+  cur.type = random(0, 7);
+  cur.rot  = 0;
+  cur.x    = (BOARD_W / 2) - 2;
+  cur.y    = -2;
+
+  if (collides(cur.x, cur.y, cur.rot))
+    gameOver = true;
+}
+
+void rotatePiece() {
+  byte nr = (cur.rot + 1) % 4;
+  if (!collides(cur.x, cur.y, nr)) {
+    cur.rot = nr;
+    tone(BUZZER, 600, 60);
+  }
+}
+
+void moveLeft() {
+  if (!collides(cur.x - 1, cur.y, cur.rot)) {
+    cur.x--;
+    tone(BUZZER, 200, 40);
+  }
+}
+
+void moveRight() {
+  if (!collides(cur.x + 1, cur.y, cur.rot)) {
+    cur.x++;
+    tone(BUZZER, 200, 40);
+  }
+}
+
+void softDrop() {
+  if (!collides(cur.x, cur.y + 1, cur.rot)) {
+    cur.y++;
+    tone(BUZZER, 150, 30);
+  } else {
+    lockPiece();
+    clearLines();
+    spawnPiece();
+  }
+}
+
+
+bool pL=false,pR=false,pU=false,pD=false;
+
+void readButtons() {
+  bool bL = digitalRead(BTN_LEFT);
+  bool bR = digitalRead(BTN_RIGHT);
+  bool bU = digitalRead(BTN_ROTATE);
+  bool bD = digitalRead(BTN_DOWN);
+
+  if (bL && !pL) moveLeft();
+  if (bR && !pR) moveRight();
+  if (bU && !pU) rotatePiece();
+  if (bD && !pD) softDrop();
+
+  pL = bL; pR = bR; pU = bU; pD = bD;
+}
+
+void renderGame() {
+  clearFrame();
+
+  
+  for (int y = 0; y < BOARD_H; y++) {
+    for (int x = 0; x < min(BOARD_W, DISP_W); x++) {
+      if (board[y][x]) {
+        setPixel(x, y, true);
+      }
+    }
+  }
+
+  for (byte i = 0; i < 4; i++) {
+    for (byte j = 0; j < 4; j++) {
+      byte cell = pgm_read_byte(&PIECES[cur.type][cur.rot][i][j]);
+      if (!cell) continue;
+
+      int bx = cur.x + j;
+      int by = cur.y + i;
+      
+      if (bx >= 0 && bx < DISP_W && by >= 0 && by < DISP_H) {
+        setPixel(bx, by, true);
+      }
+    }
+  }
+
+  flushDisplay();
+}
+
+unsigned long lastFall = 0;
+unsigned int fallSpeed = 600;
+
+void setup() {
+  pinMode(DIN_PIN, OUTPUT);
+  pinMode(CLK_PIN, OUTPUT);
+  pinMode(CS_PIN,  OUTPUT);
+
+  pinMode(BTN_LEFT,   INPUT);
+  pinMode(BTN_RIGHT,  INPUT);
+  pinMode(BTN_ROTATE, INPUT);
+  pinMode(BTN_DOWN,   INPUT);
+  pinMode(BUZZER,     OUTPUT);
+
+  maxAll(REG_SCAN_LIMIT, 7);
+  maxAll(REG_DECODE_MODE, 0);
+  maxAll(REG_SHUTDOWN,    1);
+  maxAll(REG_DISPLAY_TEST,0);
+  maxAll(REG_INTENSITY,   2);
+  for (byte r = 0; r < 8; r++)
+    maxAll(REG_DIGIT0 + r, 0);
+
+  randomSeed(analogRead(A0));
+  
+  testDisplay();
+
+  for (int y = 0; y < BOARD_H; y++)
+    for (int x = 0; x < BOARD_W; x++)
+      board[y][x] = 0;
+
+  spawnPiece();
+}
+
+void loop() {
+  if (gameOver) {
+    tone(BUZZER, 600,200); delay(250);
+    tone(BUZZER, 500,200); delay(250);
+    tone(BUZZER, 400,300);
+    noTone(BUZZER);
+    while(1); 
+  }
+
+  readButtons();
+
+  unsigned long now = millis();
+  if (now - lastFall > fallSpeed) {
+    softDrop();
+    lastFall = now;
+  }
+
+  renderGame(); 
+}
