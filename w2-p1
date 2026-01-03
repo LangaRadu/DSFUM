@@ -1,0 +1,23 @@
+int p = 0;
+int dir = 1;
+
+void setup() {
+  pinMode(13, OUTPUT);
+}
+
+void loop() {
+  unsigned long t0 = millis();
+
+  // fereastra de ~5ms ca în codul tău
+  while (millis() - t0 < 5) {
+    unsigned long e = millis() - t0;
+
+    // exact aceeași condiție: ON dacă e < p/12
+    digitalWrite(13, (e < (unsigned long)(p / 12)) ? HIGH : LOW);
+  }
+
+  // urcă / coboară 0..255..0 fără cele două for-uri
+  p += dir;
+  if (p >= 255) { p = 255; dir = -1; }
+  if (p <= 0)   { p = 0;   dir =  1; }
+}
