@@ -1,0 +1,48 @@
+
+const byte LATCH = 4;
+const byte CLK   = 7;
+const byte DATA  = 8;
+
+void setup() {
+  pinMode(LATCH, OUTPUT);
+  pinMode(CLK,   OUTPUT);
+  pinMode(DATA,  OUTPUT);
+}
+
+void loop() {
+  const byte d0 = 0b11000000;
+  const byte d1 = 0b11111001;
+  const byte d2 = 0b10100100;
+  const byte d3 = 0b10110000;
+  const byte d4 = 0b10011001;
+  const byte d5 = 0b10010010;
+  const byte d6 = 0b10000010;
+  const byte d7 = 0b11111000;
+  const byte d8 = 0b10000000;
+  const byte d9 = 0b10010000;
+
+  for (byte n = 0; n < 10; n++) {
+    byte v =
+      (n==0)?d0:(n==1)?d1:(n==2)?d2:(n==3)?d3:(n==4)?d4:
+      (n==5)?d5:(n==6)?d6:(n==7)?d7:(n==8)?d8:d9;
+
+    digitalWrite(LATCH, LOW);
+    shiftOut(DATA, CLK, MSBFIRST, v);
+    shiftOut(DATA, CLK, MSBFIRST, 241);
+    digitalWrite(LATCH, HIGH);
+
+    delay(1000);
+  }
+
+  digitalWrite(LATCH, LOW);
+  shiftOut(DATA, CLK, MSBFIRST, 0);
+  shiftOut(DATA, CLK, MSBFIRST, 244);
+  digitalWrite(LATCH, HIGH);
+  delay(1000);
+
+  digitalWrite(LATCH, LOW);
+  shiftOut(DATA, CLK, MSBFIRST, 0);
+  shiftOut(DATA, CLK, MSBFIRST, 248);
+  digitalWrite(LATCH, HIGH);
+  delay(1000);
+}
