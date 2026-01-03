@@ -1,0 +1,55 @@
+void setup() {
+  Serial.begin(9600);
+  for (int i = 0; i < 14; i++) pinMode(i, OUTPUT);
+}
+
+void loop() {
+  if (!Serial.available()) return;
+
+  String s = Serial.readStringUntil('\n');
+  s.trim();
+  if (s.length() == 0) return;
+
+  int c1 = s.indexOf(',');
+  int c2 = s.indexOf(',', c1 + 1);
+  if (c1 < 0 || c2 < 0) return;
+
+  String ledPart = s.substring(0, c1);
+  String prog    = s.substring(c1 + 1, c2);
+  int time_ms    = s.substring(c2 + 1).toInt();
+
+  int a, b;
+  int dash = ledPart.indexOf('-');
+  if (dash >= 0) {
+    a = ledPart.substring(0, dash).toInt();
+    b = ledPart.substring(dash + 1).toInt();
+  } else {
+    a = ledPart.toInt();
+    b = a;
+  }
+
+  if (prog == "blink") {
+    for (int rep = 0; rep < 5; rep++) {
+      for (int j = a; j <= b; j++) digitalWrite(8 + j, HIGH);
+      delay(time_ms);
+      for (int j = a; j <= b; j++) digitalWrite(8 + j, LOW);
+      delay(time_ms);
+    }
+  }
+  else if (prog == "fadein") {
+    for (int j = a; j <= b; j++) {
+      for (int v = 0; v < 255; v += 5) {
+        analogWrite(8 + j, v);
+        delay(time_ms / 255);
+      }
+    }
+  }
+  else if (prog == "fadeout") {
+    for (int j = a; j <= b; j++) {
+      for (int v = 255; v >= 0; v -= 5) {
+        analogWrite(8 + j, v);
+        delay(time_ms / 255);
+      }
+    }
+  }
+}
