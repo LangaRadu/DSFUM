@@ -1,0 +1,75 @@
+#include <WiFi.h>
+
+const char* WIFI_SSID = "Info Orange";
+const char* WIFI_PASS = "qwerty1230";
+
+WiFiServer http(80);
+
+void replyPage(WiFiClient& c, const String& title, const String& href, const String& label)
+{
+  c.print(
+    "HTTP/1.1 200 OK\r\n"
+    "Content-Type: text/html; charset=utf-8\r\n"
+    "Connection: close\r\n"
+    "\r\n"
+  );
+
+  c.print("<!doctype html><html><body>");
+  c.print("<h1>");
+  c.print(title);
+  c.print("</h1>");
+  c.print("<a href='");
+  c.print(href);
+  c.print("'>");
+  c.print(label);
+  c.print("</a>");
+  c.print("</body></html>");
+}
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println("\nWiFi connect...");
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(300);
+    Serial.print("#");
+  }
+
+  Serial.print("\nIP: ");
+  Serial.println(WiFi.localIP());
+
+  http.begin();
+  Serial.println("HTTP server started.");
+}
+
+void loop() {
+  WiFiClient client = http.available();
+  if (!client) return;
+
+  Serial.println("\n[+] Client connected");
+  client.setTimeout(1500);
+
+  String firstLine = client.readStringUntil('\n');
+  firstLine.trim(); // scoate \r și spații
+  Serial.print("Request: ");
+  Serial.println(firstLine);
+
+  while (client.connected()) {
+    String h = client.readStringUntil('\n');
+    if (h == "\r" || h.length() == 0) break;
+  }
+
+  if (firstLine.startsWith("GET /H")) {
+    replyPage(client, "Ai accesat URL-ul /H", "/L", "Mergi la LOW");
+  } else if (firstLine.startsWith("GET /L")) {
+    replyPage(client, "Ai accesat URL-ul /L", "/H", "Mergi la HIGH");
+  } else {
+    replyPage(client, "URL necunoscut", "/H", "Mergi la HIGH");
+  }
+
+  client.stop();
+  Serial.println("[-] Client disconnected");
+}
