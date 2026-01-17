@@ -1,0 +1,58 @@
+// LAB 1 - aceeași funcționalitate, alt stil
+
+const byte P1 = 8;
+const byte P2 = 13;
+
+void setup() {
+  for (byte p = P1; p <= P2; ++p) {
+    pinMode(p, OUTPUT);
+  }
+}
+
+// Helper: stinge toate LED-urile între doi pini (inclusiv)
+void offRange(byte a, byte b) {
+  for (byte p = a; p <= b; ++p) {
+    digitalWrite(p, LOW);
+  }
+}
+
+// Helper: pune aceeași valoare (HIGH/LOW) pe tot intervalul
+void writeRange(byte a, byte b, byte value) {
+  for (byte p = a; p <= b; ++p) {
+    digitalWrite(p, value);
+  }
+}
+
+// === Echivalent cu first_animation() din codul tău ===
+void anim1() {
+  offRange(P1, P2);          // stinge 8..13
+  digitalWrite(P1, HIGH);    // aprinde 8
+  digitalWrite(P2, HIGH);    // aprinde 13
+}
+
+// === Echivalent cu second_animation() din codul tău ===
+void anim2() {
+  offRange(8, 11);           // stinge 8..11
+  digitalWrite(8, HIGH);     // aprinde 8
+}
+
+// === Echivalent cu third_animation() din codul tău ===
+void anim3() {
+  offRange(P1, P2);          // stinge 8..13
+
+  // blink = 0 sau 1, se schimbă la fiecare 200ms
+  byte blink = (byte)(((unsigned long)millis() / 200UL) & 1UL);
+
+  writeRange(P1, P2, blink ? HIGH : LOW); // pune pe toate același blink
+}
+
+void loop() {
+  anim1();
+  delay(1000);
+
+  anim2();
+  delay(1000);
+
+  anim3();
+  delay(1000);
+}
