@@ -1,17 +1,21 @@
-int p = 0;
-int dir = 1;
+int p = 0;      
+int dir = 1;  
+
+const unsigned long PERIOD_US = 5000; 
 
 void setup() {
   pinMode(13, OUTPUT);
 }
 
 void loop() {
-  unsigned long t0 = millis();
+  unsigned long t0 = micros();
 
-  while (millis() - t0 < 5) {
-    unsigned long e = millis() - t0;
+  while (micros() - t0 < PERIOD_US) {
+    unsigned long e = micros() - t0;
 
-    digitalWrite(13, (e < (unsigned long)(p / 12)) ? HIGH : LOW);
+    unsigned long onTime = (unsigned long)p * PERIOD_US / 255UL;
+
+    digitalWrite(13, (e < onTime) ? HIGH : LOW);
   }
 
   p += dir;
