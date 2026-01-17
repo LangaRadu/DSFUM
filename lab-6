@@ -1,12 +1,11 @@
 #include <LedControl.h>
 
-// MAX7219: DIN=11, CLK=13, CS=10
 LedControl mx(11, 13, 10, 1);
 
 static const byte SIZE = 8;
 static const unsigned long STEP_MS = 300;
 
-byte cur[SIZE];   // fiecare element = un rând, bit x = celula (x)
+byte cur[SIZE];   
 byte nxt[SIZE];
 byte prev[SIZE];
 
@@ -60,16 +59,7 @@ static void nextGen(const byte in[SIZE], byte out[SIZE]) {
   }
 }
 
-static bool stableComparedToPrev(const byte candidate[SIZE], byte prevState[SIZE], const byte current[SIZE]) {
-  // în codul tău: stabil dacă nextGrid == prevGrid, apoi prevGrid = grid
-  // aici: stabil dacă nxt == prev, apoi prev = cur
-  bool same = true;
-  for (byte y = 0; y < SIZE; y++) {
-    if (candidate[y] != prevState[y]) { same = false; break; }
-  }
-  for (byte y = 0; y < SIZE; y++) prevState[y] = current[y];
-  return same;
-}
+
 
 void setup() {
   mx.shutdown(0, false);
@@ -79,10 +69,18 @@ void setup() {
   randomSeed(analogRead(A0));
 
   fillRandom(cur);
-  for (byte i = 0; i < SIZE; i++) prev[i] = cur[i]; // echivalent cu copyGrid(grid, prevGrid)
+  for (byte i = 0; i < SIZE; i++) prev[i] = cur[i]; 
   show(cur);
 }
-
+static bool stableComparedToPrev(const byte candidate[SIZE], byte prevState[SIZE], const byte current[SIZE]) {
+  
+  bool same = true;
+  for (byte y = 0; y < SIZE; y++) {
+    if (candidate[y] != prevState[y]) { same = false; break; }
+  }
+  for (byte y = 0; y < SIZE; y++) prevState[y] = current[y];
+  return same;
+}
 void loop() {
   unsigned long now = millis();
   if (now - tick < STEP_MS) return;
@@ -91,9 +89,13 @@ void loop() {
   nextGen(cur, nxt);
 
   if (stableComparedToPrev(nxt, prev, cur)) {
-    fillRandom(cur);          // autoreset ca în original
+
+    fillRandom(cur);   
+
     for (byte i = 0; i < SIZE; i++) prev[i] = cur[i];
+
   } else {
+
     for (byte i = 0; i < SIZE; i++) cur[i] = nxt[i];
   }
 
