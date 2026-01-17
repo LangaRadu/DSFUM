@@ -21,22 +21,22 @@ void writeRange(byte a, byte b, byte value) {
 }
 
 void anim1() {
-  offRange(P1, P2);          // stinge 8..13
-  digitalWrite(P1, HIGH);    // aprinde 8
-  digitalWrite(P2, HIGH);    // aprinde 13
+  offRange(P1, P2);          
+  digitalWrite(P1, HIGH);   
+  digitalWrite(P2, HIGH);   
 }
 
 void anim2() {
-  offRange(8, 11);           // stinge 8..11
-  digitalWrite(8, HIGH);     // aprinde 8
+  offRange(8, 11);           
+  digitalWrite(8, HIGH);   
 }
 
 void anim3() {
-  offRange(P1, P2);          // stinge 8..13
+  offRange(P1, P2);        
 
   byte blink = (byte)(((unsigned long)millis() / 200UL) & 1UL);
 
-  writeRange(P1, P2, blink ? HIGH : LOW); // pune pe toate același blink
+  writeRange(P1, P2, blink ? HIGH : LOW); 
 }
 
 void loop() {
